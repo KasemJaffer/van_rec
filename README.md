@@ -7,7 +7,7 @@ courses, fitness centers, or skateboard parks, this app offers a resource for
 discovering these recreational amenities in your community.
 
 ![Alt Text](./screenshot-2.jpg)
-
+<br><br>
 ![Alt Text](./screenshot-1.jpg)
 
 ## Getting Started
