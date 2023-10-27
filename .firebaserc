@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "kasem-dev"
+  },
+  "targets": {
+    "kasem-dev": {
+      "hosting": {
+        "kasem-dev": [
+          "vanrec"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

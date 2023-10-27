@@ -1,0 +1,18 @@
+name: importer
+description: Imports data from 
+version: 1.0.0
+# homepage: https://www.example.com
+
+environment:
+  sdk: '>=2.17.5 <3.0.0'
+
+dependencies:
+  supabase: ^1.11.10
+  http: ^1.1.0
+  intl: ^0.18.1
+  args: ^2.4.2
+  dotenv: ^4.2.0
+
+dev_dependencies:
+  lints: ^2.1.1
+  test: ^1.24.6
