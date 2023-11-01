@@ -16,15 +16,46 @@ Link: [Website](https://vanrec.kasem.dev)
 This project uses Supabase for storage. To get started. Go to https://supabase.com and create a project.
 Get connection url and key, and put them inside `.env` file in the root folder of this project. 
 
-Example `.env` file
+Example `local.env` file
 ```
 SUPABASE_URL=https://lkajsdlkjasda.supabase.co
 SUPABASE_KEY=asdasd.asdasd.asdasdasdasd
 ```
 
 ## Database Schema
-The project expects you have a database with the following schema.
+The project expects you to have a database with the following schema.
 ![Alt Text](./schema.jpg)
+
+### Add Events Function (Stored Procedure)
+
+Function name: `addEvents`
+```postgres
+BEGIN
+  INSERT INTO "Events"
+    SELECT * FROM json_to_recordset(payload) as (
+      id bigint, 
+      "start" timestamp without time zone, 
+      "end" timestamp without time zone, 
+      "title" text, 
+      "activityName" text, 
+      "centerName" text,
+      "description" text,  
+      "allDay" boolean, 
+      "activityId" bigint, 
+      "centerId" bigint
+  )
+  ON CONFLICT ("id", "start", "end") 
+  DO 
+    UPDATE SET 
+      "title" = excluded.title, 
+      "description" = excluded.description, 
+      "allDay" = excluded."allDay",
+      "activityName" = excluded."activityName",
+      "centerName" = excluded."centerName";
+  RETURN TRUE;      
+END;
+
+```
 
 ## Google analytics
 - To enable google analytics run the following command.
