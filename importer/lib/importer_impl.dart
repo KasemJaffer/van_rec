@@ -6,11 +6,22 @@ import 'package:intl/intl.dart';
 import 'package:supabase/supabase.dart';
 import "dart:io";
 
-class Importer {
-  SupabaseClient supabase;
+/// The `ImporterImpl` class is responsible for importing data into Supabase.
+class ImporterImpl {
+  final SupabaseClient client;
 
-  Importer(this.supabase);
+  /// External source where all the data come from.
+  final sourceUrl = Uri.parse(
+      "https://ca.apm.activecommunities.com/vancouver/ActiveNet_Calendar");
 
+  /// Constructor for the `ImporterImpl` class.
+  ///
+  /// Initialize a new instance of `Importer` with a Supabase client.
+  ///
+  /// [client] - An instance of the Supabase client.
+  ImporterImpl(this.client);
+
+  /// A static list of activities with their corresponding IDs and names.
   static const activities = <Map<int, String>>[
     {3: "Public Skating & Ice Hockey"},
     {55: "Public Swimming"},
@@ -36,18 +47,22 @@ class Importer {
     {22: "Various/Other Drop-in Activities"}
   ];
 
+  /// Import activities into the Supabase database.
   Future<void> importActivities() async {
     for (int i = 0; i < activities.length; i++) {
       final a = activities[i];
       final act = a.entries.first;
       stdout.write("${i + 1}/${activities.length} Updating Activities... ");
-      await supabase
+
+      // Add to table in the database
+      await client
           .from("Activities")
           .upsert({"id": act.key, "name": act.value});
       stdout.writeln('DONE');
     }
   }
 
+  /// Import centers into the Supabase database and link them to activities.
   Future<void> importCenters() async {
     for (int i = 0; i < activities.length; i++) {
       final a = activities[i];
@@ -55,41 +70,45 @@ class Importer {
       final activityId = act.key;
       final round = "${i + 1}/${activities.length}";
       stdout.write("$round Fetching centers for [${act.value}]... ");
-      final filters = await fetchFilters(activityId);
-      stdout.writeln("(${filters.center.length})");
 
-      final centers = filters.center.entries.toList();
+      // Fetch centers from external source
+      final centers = await _fetchCenters(activityId);
 
-      for (int j = 0; j < centers.length; j++) {
-        final center = centers[j];
-        final centerId = center.key;
-        final name = (center.value as String).replaceFirst("*", "");
-        stdout
-            .write("      ${j + 1}/${centers.length} Updating Centers... ");
-        await supabase
-            .from("Centers")
-            .upsert({"id": centerId, "name": name});
+      stdout.writeln("(${centers.length})");
+
+      int j = 0;
+      for (var center in centers) {
+        j++;
+        stdout.write("      $j/${centers.length} Updating Centers... ");
+
+        // Add them to database
+        await client.from("Centers").upsert({
+          "id": center.id,
+          "name": center.name,
+        });
         stdout.write('DONE, updating CenterActivities... ');
-        await supabase
-            .from("CenterActivities")
-            .upsert({"activityId": activityId, "centerId": centerId});
+
+        // Add Activity and Center link
+        await client.from("CenterActivities").upsert({
+          "activityId": activityId,
+          "centerId": center.id,
+        });
         stdout.writeln('DONE');
       }
     }
   }
 
+  /// Import events into the Supabase database.
   Future<void> importEvents() async {
     stdout.write("Fetching center activity links... ");
-    final resp = await supabase
+    final resp = await client
         .from("CenterActivities")
         .select('center:centerId (*), activity:activityId (*)')
         .withConverter<List<CenterActivity>>((data) => (data as List)
-            .map(
-              (e) => CenterActivity.fromMap(
-                center: e["center"],
-                activity: e["activity"],
-              ),
-            )
+            .map((e) => CenterActivity.fromMap(
+                  center: e["center"],
+                  activity: e["activity"],
+                ))
             .toList());
 
     stdout.writeln("(${resp.length})");
@@ -98,26 +117,30 @@ class Importer {
       final activity = link.activity;
       final center = link.center;
 
+      // Fetch events from external source
       final events = (await _fetchEvents(activity, center)).toList();
 
       stdout.write(
           "${j + 1}/${resp.length} Inserting ${events.length} events... ");
-      final r = await supabase.rpc('addEvents', params: {
+
+      // Add them to database using addEvents stored procedure
+      final r = await client.rpc('addEvents', params: {
         'payload': events.map((e) => e.toMap()).toList(),
       });
       stdout.writeln(r ? "OK" : "Failed");
     }
   }
 
-  Future<List<MyEvent>> _fetchEvents(
+  /// Fetch events for a given activity and center from [sourceUrl].
+  Future<Iterable<MyEvent>> _fetchEvents(
     Activity activity,
     RecCenter center,
   ) async {
     final uri = Uri(
-      scheme: "https",
-      host: "ca.apm.activecommunities.com",
-      path: "vancouver/ActiveNet_Calendar",
-      queryParameters: ActivityParams.getEvents(
+      scheme: sourceUrl.scheme,
+      host: sourceUrl.host,
+      path: sourceUrl.path,
+      queryParameters: _QueryParams.forEvents(
         activityId: activity.id,
         centerId: center.id,
         start: DateTime.now().startDateOfWeek,
@@ -135,15 +158,16 @@ class Importer {
       e['activityName'] = activity.name;
       e['centerName'] = center.name;
       return MyEvent.fromMap(e);
-    }).toList();
+    });
   }
 
-  Future<FiltersInfo> fetchFilters(int activityId) async {
+  /// Fetch centers for a specific activity from [sourceUrl].
+  Future<Iterable<RecCenter>> _fetchCenters(int activityId) async {
     final uri = Uri(
-      scheme: "https",
-      host: "ca.apm.activecommunities.com",
-      path: "vancouver/ActiveNet_Calendar",
-      queryParameters: ActivityParams.generateFilter(
+      scheme: sourceUrl.scheme,
+      host: sourceUrl.host,
+      path: sourceUrl.path,
+      queryParameters: _QueryParams.forCenters(
         activityId: activityId,
         start: DateTime.now().startDateOfWeek,
         end: DateTime.now().startDateOfWeek.start.add(const Duration(days: 21)),
@@ -151,14 +175,17 @@ class Importer {
     );
 
     final resp = await http.get(uri);
-
     final json = jsonDecode(utf8.decode(resp.bodyBytes));
 
-    return FiltersInfo.fromJson(json);
+    return (json['center'] as Map<String, dynamic>).entries.map((e) {
+      final id = e.key;
+      final name = (e.value as String).replaceFirst("*", "");
+      return RecCenter(int.parse(id), name);
+    });
   }
 }
 
-class ActivityParams {
+class _QueryParams {
   static final _format = DateFormat("yyyy-MM-dd");
 
   int activityId;
@@ -175,14 +202,16 @@ class ActivityParams {
   int? maxAge;
   int? centerId;
 
-  ActivityParams.generateFilter({
+  /// Initializes specific params for fetching centers.
+  _QueryParams.forCenters({
     required this.activityId,
     required this.start,
     required this.end,
     this.generateFilter = true,
   });
 
-  ActivityParams.getEvents({
+  /// Initializes specific params for fetching events.
+  _QueryParams.forEvents({
     required this.activityId,
     required this.start,
     required this.end,
@@ -211,37 +240,4 @@ class ActivityParams {
       if (centerId != null) 'centerId': centerId.toString(),
     };
   }
-}
-
-class FiltersInfo {
-  Map<String, dynamic> show;
-  Map permitCenter;
-  Map<String, dynamic> activityCenter;
-  Map activityAndPermitCenter;
-  Map<String, dynamic> category;
-  Map<String, dynamic> subcategory;
-  Map<String, dynamic> activity;
-  Map<String, dynamic> center;
-  Map<String, List> mapActivityCenters;
-  Map<String, List> mapCategoryActivities;
-  Map<String, List> mapSubcategoryActivities;
-  Map<String, List> mapActivityAgeRange;
-
-  FiltersInfo.fromJson(Map<String, dynamic> map)
-      : show = map['show'],
-        permitCenter = map['permit_center'],
-        activityCenter = map['activity_center'],
-        activityAndPermitCenter = map['activity_and_permit_center'],
-        category = map['category'],
-        subcategory = map['subcategory'],
-        activity = map['activity'],
-        center = map['center'],
-        mapActivityCenters =
-            (map['map_activity_centers'] as Map).cast<String, List>(),
-        mapCategoryActivities =
-            map['map_category_activities'].cast<String, List>(),
-        mapSubcategoryActivities =
-            map['map_subcategory_activities'].cast<String, List>(),
-        mapActivityAgeRange =
-            map['map_activity_age_range'].cast<String, List>();
 }
