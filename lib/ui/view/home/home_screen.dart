@@ -57,6 +57,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _calendarController.selectedDate = widget.date ?? DateTime.now();
     _searchController = TextEditingController(text: _uiState.query);
+
+    _viewModel.updateAll(
+      activityId: widget.activityId,
+      centerId: widget.centerId,
+      query: widget.query,
+      date: widget.date,
+    );
   }
 
   @override
@@ -75,10 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final newView = !_viewModel.hasCriteria || widget.date != null
         ? CalendarView.day
         : CalendarView.schedule;
-    // // Workaround to disable focus on Calendar when view type is changed
-    bool disableFocus = _calendarController.view != newView;
     _calendarController.view = newView;
     _calendarController.displayDate = widget.date ?? DateTime.now();
+    // Workaround to disable focus on Calendar when view type is changed
+    bool disableFocus = _calendarController.view != newView;
 
     return Scaffold(
       primary: false,
@@ -198,16 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ))
                             .toList())
                         : null,
-                    onViewChanged: (v) {
-                      if (!_viewModel.hasCriteria) {
-                        refreshPage(
-                          query: widget.query,
-                          activityId: widget.activityId,
-                          centerId: widget.centerId,
-                          date: v.visibleDates.firstOrNull,
-                        );
-                      }
-                    },
                   ),
                 ),
                 if (_uiState.loadingEvents)
