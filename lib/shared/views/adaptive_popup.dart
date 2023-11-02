@@ -152,21 +152,36 @@ class PopupWrapperState extends State<PopupWrapper> {
                     maxWidth: controller.widthBreakPoint,
                     maxHeight: controller.heightBreakPoint,
                   ),
-                  margin: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      AppBar(
-                        backgroundColor: Colors.transparent,
+                  margin: const EdgeInsets.only(
+                    left: 32,
+                    right: 32,
+                    top: 32,
+                    bottom: 76,
+                  ),
+                  child: CustomScrollView(
+                    primary: false,
+                    shrinkWrap: true,
+                    slivers: [
+                      SliverAppBar(
                         automaticallyImplyLeading: false,
                         primary: false,
+                        pinned: true,
+                        elevation: 0,
                         title: Consumer<PopupController>(
                           builder: (_, t, __) {
                             return t.title ?? const SizedBox();
                           },
                         ),
+                        actions: [
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: MaterialLocalizations.of(context)
+                                .closeButtonTooltip,
+                            onPressed: () => context.pop(),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Expanded(child: widget.child),
+                      SliverToBoxAdapter(child: widget.child),
                     ],
                   ),
                 ),
@@ -177,18 +192,6 @@ class PopupWrapperState extends State<PopupWrapper> {
                     builder: (_, t, __) {
                       return t.floatingActionButton ?? const SizedBox();
                     },
-                  ),
-                ),
-                // Make sure to put close button at the end of the stack so that
-                // gesture detector can detect click area properly ( weird behavior in the framework)
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip:
-                        MaterialLocalizations.of(context).closeButtonTooltip,
-                    onPressed: () => context.pop(),
                   ),
                 ),
               ],
