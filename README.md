@@ -1,7 +1,7 @@
 # VanRec
 
-VanRec, short for Vancouver Recreational Centers is an open source cross-platform app aimed at providing
-users with access to an extensive catalog of Vancouver Park Board facilities within 
+VanRec, short for Vancouver Recreational Centers is an open source cross-platform app built using [Flutter](https://flutter.dev). 
+It's aimed at providing users with access to an extensive catalog of Vancouver Park Board facilities within 
 their local area. Whether you're interested in exploring indoor pools, outdoor golf 
 courses, fitness centers, or skateboard parks, this app offers a resource for 
 discovering these recreational amenities in your community.
@@ -29,7 +29,7 @@ The project expects you to have a database with the following schema.
 ### Add Events Function (Stored Procedure)
 
 Function name: `addEvents`
-```postgres
+```sql
 BEGIN
   INSERT INTO "Events"
     SELECT * FROM json_to_recordset(payload) as (
