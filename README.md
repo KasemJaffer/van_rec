@@ -16,10 +16,79 @@ Link: [Website](https://vanrec.kasem.dev)
 This project uses Supabase for storage. To get started. Go to https://supabase.com and create a project.
 Get connection url and key, and put them inside `.env` file in the root folder of this project. 
 
-Example `local.env` file
+Example `.env` file
 ```
 SUPABASE_URL=https://lkajsdlkjasda.supabase.co
 SUPABASE_KEY=asdasd.asdasd.asdasdasdasd
+```
+
+## Project File Structure
+The entry point of the application is `lib/main.dart`.
+```
+lib/
+├── main.dart
+├── app_page.dart
+├── router.dart
+├── data/
+│   ├── ds/
+│   │   ├── supabase_data_source.dart
+│   │   ├── data_source.dart
+│   ├── repo/
+│   │   ├── event_repository.dart
+├── ui/
+│   ├── vm/
+│   │   ├── home_screen_vm.dart
+│   │   ├── details_dialog_vm.dart
+│   ├── view/
+│   │   ├── home/
+│   │   │   ├── home_screen.dart
+│   │   ├── details/
+│   │   │   ├── details_dialog.dart
+│   ├── master/
+│   │   ├── adaptive_navigation.dart
+│   │   ├── root_layout.dart
+├── shared/
+│   ├── extensions.dart
+│   ├── providers/
+│   │   ├── providers.dart
+│   │   ├── app_state.dart
+│   │   ├── theme.dart
+│   ├── utils/
+│   │   ├── utils.dart
+│   │   ├── throttler.dart
+│   ├── logs/
+│   │   ├── logger.dart
+│   │   ├── output_file/
+│   │   │   ├── output_file.dart
+│   │   │   ├── file_output_web.dart
+│   │   │   ├── file_output_mobile.dart
+│   ├── views/
+│   │   ├── outlined_card.dart
+│   │   ├── dialogs.dart
+│   │   ├── keyboard_actions.dart
+│   │   ├── adaptive_popup.dart
+│   │   ├── clickable.dart
+│   │   ├── views.dart
+│   │   ├── brightness_toggle.dart
+│   │   ├── hover_toggle.dart
+importer/
+├── bin/
+│   ├── importer.dart
+├── lib/
+│   ├── importer_impl.dart
+│   ├── data/
+│   │   ├── rec_center.dart
+│   │   ├── center_activity.dart
+│   │   ├── activity.dart
+│   │   ├── data.dart
+│   │   ├── my_event.dart
+│   ├── utils/
+│   │   ├── extensions.dart
+test/
+├── home_screen_vm_test.dart
+├── details_dialog_vm_test.dart
+.env
+pubspec.yaml
 ```
 
 ## Database Schema
@@ -72,17 +141,17 @@ await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
 - Scrape and import Activities
 ```shell
-dart importer/bin/importer.dart a
+dart importer/bin/importer.dart -a
 ```
 
 - Scrape and import Centres
 ```shell
-dart importer/bin/importer.dart c
+dart importer/bin/importer.dart -c
 ```
 
 - Scrape and import Events
 ```shell
-dart importer/bin/importer.dart e
+dart importer/bin/importer.dart -e
 ```
 
 ## Run Project
